@@ -48,22 +48,26 @@ class VBOScreen:
 
 
 class VBOParticle:
-    def __init__(self, shader, vertices, faces, particles):
+    def __init__(self, shader, vertices, faces, normals, particles):
         self.vertices = vertices
+        self.normals = normals
         self.particles = particles
         self.particleData = self.serializeParticles()
 
         self.polygon = self.generatePolygon()
+        self.normalVectors = self.generateNormals()
 
         indices = []
         for face in faces:
             indices.extend(face.to_list())
 
         self.indices = np.array(indices, dtype=np.uint32)
+
         self.VAO = glGenVertexArrays(1)
         self.VBO = glGenBuffers(1)  # Vertex Buffer Object
         self.PBO = glGenBuffers(1)  # Position Buffer Object
         self.EBO = glGenBuffers(1)  # Element Buffer Object
+        self.NBO = glGenBuffers(1)  # Normal Buffer Object
 
         glBindVertexArray(self.VAO)
 
@@ -76,6 +80,9 @@ class VBOParticle:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.EBO)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 * len(self.indices), self.indices, GL_STATIC_DRAW)
 
+        glBindBuffer(GL_ARRAY_BUFFER, self.NBO)
+        glBufferData(GL_ARRAY_BUFFER, 4 * len(self.normalVectors), self.normalVectors, GL_STATIC_DRAW)
+
         self.vertexStride = 3 * 4
         self.particleStride = (3 + 4 + 1 + 1) * 4
 
@@ -83,6 +90,11 @@ class VBOParticle:
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
         glVertexAttribPointer(self.vertexPositionLocation, 3, GL_FLOAT, GL_FALSE, self.vertexStride, ctypes.c_void_p(0))
         glEnableVertexAttribArray(self.vertexPositionLocation)
+
+        self.normalVectorLocation = glGetAttribLocation(shader, "normalVector")
+        glBindBuffer(GL_ARRAY_BUFFER, self.NBO)
+        glVertexAttribPointer(self.normalVectorLocation, 3, GL_FLOAT, GL_FALSE, self.vertexStride, ctypes.c_void_p(0))
+        glEnableVertexAttribArray(self.normalVectorLocation)
 
         self.worldPositionLocation = glGetAttribLocation(shader, "worldPosition")
         glBindBuffer(GL_ARRAY_BUFFER, self.PBO)
@@ -129,6 +141,13 @@ class VBOParticle:
             particleData.extend(particle["position"].to_list() + particle["color"] + [particle["scale"], particle["draw"]])
 
         return np.array(particleData, dtype=np.float32)
+
+    def generateNormals(self):
+        normalVectors = []
+        for normal in self.normals:
+            normalVectors.extend(normal.to_list())
+
+        return np.array(normalVectors, dtype=np.float32)
 
     def generatePolygon(self):
         polygon = []

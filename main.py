@@ -2,7 +2,6 @@ from math import floor
 from time import time
 
 import glm
-import numpy as np
 import pygame
 from OpenGL.GL import *
 from pygame import DOUBLEBUF, OPENGL
@@ -10,11 +9,11 @@ from pygame import GL_MULTISAMPLEBUFFERS, GL_MULTISAMPLESAMPLES
 
 import GameObjects
 import ShaderLoader
+import constants
 import gamePaths
 import numberShower
 import quadHandler
 from degreesMath import *
-import constants
 
 
 #  ffmpeg -i "No.1 - Kobasolo.mp3" "No.1 - Kobasolo2.wav"
@@ -49,6 +48,9 @@ def main():
     uniformView = glGetUniformLocation(shader, 'uniform_View')
     uniformProjection = glGetUniformLocation(shader, 'uniform_Projection')
     uniformLookAtMatrix = glGetUniformLocation(shader, 'lookAtMatrix')
+    uniformLightPos = glGetUniformLocation(shader, 'lightPos')
+    uniformCameraPos = glGetUniformLocation(shader, 'cameraPos')
+    uniformAmbient = glGetUniformLocation(shader, 'ambient')
 
     glUseProgram(shader)
 
@@ -72,8 +74,9 @@ def main():
     #glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
     # ----- Camera Settings -----
-    cameraRadius = 1
+    cameraRadius = constants.Femtometre*5
     cameraPos = glm.vec3(0, 0, cameraRadius)
+
     cameraFront = glm.vec3(0, 0, 0)
     cameraUp = glm.vec3(0, 1, 0)
     rotationXAngle = 0
@@ -81,13 +84,18 @@ def main():
     rotationZAngle = 0
     yDirection = 1
 
+    origCameraPos = glm.vec3(sin(rotationXAngle) * cameraRadius, 0, cos(rotationXAngle) * cameraRadius)
+
     cameraAccel = 0
     cameraVelocityDecay = 0.94
     cameraMinVelocity = 20
     cameraCurrentVelocity = 20
 
+    simulationStep = 4e-23
+    ambience = 0.7
+
     # ----- Matrix Info -----
-    projectionMatrix = glm.perspective(70, displayV.x / displayV.y, 1, 1000.0)
+    projectionMatrix = glm.perspective(70, displayV.x / displayV.y, cameraRadius/10, 1000.0)
     modelMatrix = glm.mat4(1)
 
     glUniformMatrix4fv(uniformModel, 1, GL_FALSE,
@@ -137,9 +145,14 @@ def main():
             cameraCurrentVelocity *= cameraVelocityDecay
             cameraCurrentVelocity = max(cameraCurrentVelocity, cameraMinVelocity)
 
-            rotationXAngle += deltaT / 1000 * cameraCurrentVelocity
-            rotationYAngle += deltaT / 1000 * 45 * yDirection
+            #rotationXAngle += deltaT / 1000 * cameraCurrentVelocity
+            #rotationYAngle += deltaT / 1000 * 45 * yDirection
             #rotationZAngle += deltaT / 1000 * 5
+
+        if keyPressed[pygame.K_a]:
+            rotationXAngle += deltaT / 1000 * cameraCurrentVelocity
+        elif keyPressed[pygame.K_d]:
+            rotationXAngle -= deltaT / 1000 * cameraCurrentVelocity
 
         if rotationYAngle > 360:
             rotationYAngle -= 360
@@ -170,12 +183,12 @@ def main():
         cameraAdjRadius = abs(cos(adjRotationY+90)) * cameraRadius
 
         cameraPos = glm.vec3(sin(rotationXAngle) * cameraAdjRadius, cameraHeight, cos(rotationXAngle) * cameraAdjRadius)
+        #print(cameraPos)
         #cameraUp = (sin(rotationZAngle), cos(rotationZAngle), 0)
 
         viewMatrix = glm.lookAt(cameraPos,
                                 cameraFront,
                                 cameraUp)
-
         particleLookMatrix = glm.mat4(1)
 
         yRotation = glm.rotate(particleLookMatrix, glm.radians(adjRotationY+90), (1, 0, 0))
@@ -185,7 +198,7 @@ def main():
 
         if not stopUpdate:
             # At 3000 particles, 23 ms to update
-            particleEmitterObject.update(deltaT, pygame.time.get_ticks())
+            particleEmitterObject.update(simulationStep, pygame.time.get_ticks())
 
             #  At 3000 particles, 4ms to sort, 3ms to draw
             if frameCount % 2 == 0:
@@ -199,6 +212,11 @@ def main():
 
         glUniformMatrix4fv(uniformLookAtMatrix, 1, GL_FALSE,
                            glm.value_ptr(particleLookMatrix))
+
+        glUniform3fv(uniformLightPos, 1, glm.value_ptr(origCameraPos))
+        glUniform3fv(uniformCameraPos, 1, glm.value_ptr(cameraPos))
+
+        glUniform1f(uniformAmbient, ambience)
 
         particleEmitterObject.draw()
 

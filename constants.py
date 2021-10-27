@@ -3,12 +3,18 @@ tP = PlanckTime = 5.3912e-44  # s
 mP = PlanckMass = 2.1765e-8  # kg
 qP = PlanckCharge = 1.8755e-18  # m
 
-c = CoulombConstant = 8.987e9  # Nm2C-2
+c = CoulombConstant = 9e9 # 8.987e9  # Nm2C-2
 fm = Femtometre = 1e-15
+nu = 0.7
+
+MeV2J = MegaElectronVoltsToJoules = 1.6022e-13
 
 re = ElectronClassicalRadius = 2.8179 * fm  # m
 rP = ProtonRadius = 0.84 * fm  # m
 nP = NeutronRadius = 0.8 * fm  # m
+
+pM = ProtonMass = 1.6726219e-27
+nM = NeutronMass = 1.674927e-27
 
 ae = FineStructureConstant = 0.00729735
 pi = 3.14159265358979323846264338327950288419716939937510
