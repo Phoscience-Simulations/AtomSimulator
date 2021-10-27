@@ -1,6 +1,4 @@
-rom constants import *
 #import numba
-from numpy import exp
 # import numba
 from numpy import exp
 
